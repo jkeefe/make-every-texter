@@ -3,12 +3,15 @@ var request = require('request');
 // The next line reads in a file with my api keys.
 // Delete it if you hard-code your keys into the code below
 var keys = require('../api_keys/readability_keys'); 
-
-var textedUrl = "http://johnkeefe.net/make-every-week-remote-controlled-egg";
     // Values read in:
     // READABILITY_PARSER_TOKEN      (called keys.READABILITY_PARSER_TOKEN)
 
+// grab the url from the command line
+// ... as the third argument in:
+//       node parser.js http://johnkeefe.com/hi-weatherbot
+var textedUrl = process.argv[2];
 
+// parse the URL
 parseIt(textedUrl);
 
 
