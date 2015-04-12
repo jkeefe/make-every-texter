@@ -1,4 +1,5 @@
 var request = require('request');
+var readability = require('node-readability');
 
 // The next line reads in a file with my api keys.
 // Delete it if you hard-code your keys into the code below
@@ -12,12 +13,12 @@ var keys = require('../api_keys/readability_keys');
 var textedUrl = process.argv[2];
 
 // parse the URL
-parseIt(textedUrl);
-
+//parseItAPI(textedUrl);
+parseItLocally(textedUrl);
 
 // This function sends a URL to the Readability API 
 // and outputs the results to the console
-function parseIt(parseUrl) {
+function parseItAPI(parseUrl) {
     
     // configure the request
     var options = {
@@ -48,6 +49,38 @@ function parseIt(parseUrl) {
         }
         
     });
+      
+}
+
+// This one uses the node-readabiity module locally
+
+function parseItLocally(url) {
     
+    read(url, function(err, article, meta){
+        
+        //Main article
+        console.log("MAIN ARTICLE -------");
+        console.log(article.content);
+        
+        // Title
+        console.log("TITLE --------");
+        console.log(article.title);
+        
+        // html 
+        console.log("HTML ------");
+        console.log(article.html);
+        
+        // DOM
+        console.log("DOM -------- ");
+        console.log(article.dom);
+        
+        // Response Object
+        console.log("RESPONSE OBJECT ----");
+        console.log(meta);
+        
+        // close the article to clean up and prevent leaks
+        article.close();
+        
+    });
     
 }
