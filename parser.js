@@ -1,5 +1,5 @@
-var request = require('request');
-var readability = require('node-readability');
+var request = require('request'),
+    readability = require('node-readability');
 
 // The next line reads in a file with my api keys.
 // Delete it if you hard-code your keys into the code below
@@ -9,78 +9,90 @@ var keys = require('../api_keys/readability_keys');
 
 // grab the url from the command line
 // ... as the third argument in:
-//       node parser.js http://johnkeefe.com/hi-weatherbot
+//   $ node parser.js http://johnkeefe.net/make-every-week-remote-controlled-egg
 var textedUrl = process.argv[2];
 
-// parse the URL
-//parseItAPI(textedUrl);
-parseItLocally(textedUrl);
+// configure the request
+var options = {
+    url: "https://readability.com/api/content/v1/parser/?url=" + textedUrl + 
+        "&token=" + keys.READABILITY_PARSER_TOKEN,
+    method: "GET"
+};
 
-// This function sends a URL to the Readability API 
-// and outputs the results to the console
-function parseItAPI(parseUrl) {
+// make the request to the readability API
+request(options, function (error, response, body){
     
-    // configure the request
-    var options = {
-        url: "https://readability.com/api/content/v1/parser/?url=" + parseUrl + 
-            "&token=" + keys.READABILITY_PARSER_TOKEN,
-        method: "GET"
-    };
-    
-    // make the request
-    request(options, function (error, response, body){
-        if (!error && response.statusCode == 200) {
+    if (error || response.statusCode != 200) {
+        
+        // api call failed, output an error
+        console.log("Failed hitting the Readability API:", error);
+        
+    } else {
+        
+        // Success! Parse the JSON from the body
+        var content = JSON.parse(body);
+
+        // Are we missing the date or author?
+        if (!content.date_published || content.date_published === null || content.date_published ==="" || !content.author || content.author === null || content.author === "") {
             
-            // Parse the JSON from the body
-            var content = JSON.parse(body);
-            
-            // success! print body we got back
-            console.log("Title:", content.title);
-            console.log("Author:", content.author);
-            console.log("Excerpt:", content.excerpt);
-            console.log("Image:", content.lead_image_url);
-            console.log("Date:", content.date_published);
+            // If so, then hit the page ourselves
+            readability(textedUrl, function(error, article, meta){
+                
+                if (error) {
+                    // getting the raw page failed
+                    console.log("Failed to get post from URL:", error);
+                    
+                } else {
+                    
+                    // check for dates
+                    content.date_published = checkForDate(article.document);
+                    // content.author = checkForAuthor(article.document);
+                    outputFindings(content);
+                    
+                }
+
+            });
             
         } else {
-            
-            // otherwise output an error
-            console.log(error);
-            
+
+            // nothing was missing, output the content
+            outputFindings(content);
+
         }
         
-    });
+    }
+    
+});
       
-}
 
-// This one uses the node-readabiity module locally
+// this looks for missing dates
 
-function parseItLocally(url) {
+
+function checkForDate(page_dom) {
     
-    read(url, function(err, article, meta){
+        // POSTHAVEN?
+        // see if there's a posthaven date div
+        var x = page_dom.querySelectorAll("div.actual-date.posthaven-timezone-string");
+        if (x.length > 0 && x[0].hasAttributes() ) {
+            // grab the utc date from that div's attributes
+            date = x[0].attributes['data-posthaven-date-utc-iso8601'].value; 
+        } else {
+            // default to "today"
+            date = "today";
+        }
         
-        //Main article
-        console.log("MAIN ARTICLE -------");
-        console.log(article.content);
-        
-        // Title
-        console.log("TITLE --------");
-        console.log(article.title);
-        
-        // html 
-        console.log("HTML ------");
-        console.log(article.html);
-        
-        // DOM
-        console.log("DOM -------- ");
-        console.log(article.dom);
-        
-        // Response Object
-        console.log("RESPONSE OBJECT ----");
-        console.log(meta);
-        
-        // close the article to clean up and prevent leaks
-        article.close();
-        
-    });
+        return date;
     
 }
+
+function outputFindings(content) {
+    
+    // output our findings            
+    console.log("Title:", content.title);
+    console.log("Author:", content.author);
+    console.log("Excerpt:", content.excerpt);
+    console.log("Image:", content.lead_image_url);
+    console.log("Date:", content.date_published);
+    
+}
+
