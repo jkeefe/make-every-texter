@@ -19,6 +19,7 @@ var options = {
     method: "GET"
 };
 
+
 // make the request to the readability API
 request(options, function (error, response, body){
     
